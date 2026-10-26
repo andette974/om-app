@@ -1,21 +1,24 @@
-const { createClient } = require('@supabase/supabase-js')
+import { createClient } from '@supabase/supabase-js'
 
 const VERIFY_TOKEN = 'om_secret_token_123'
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   // 1. Validation du Webhook par Meta (GET)
   if (req.method === 'GET') {
-    const mode = req.query['hub.mode']
-    const token = req.query['hub.verify_token']
-    const challenge = req.query['hub.challenge']
+    const parsedUrl = new URL(req.url, `https://${req.headers.host || 'localhost'}`)
+    const mode = parsedUrl.searchParams.get('hub.mode') || req.query['hub.mode']
+    const token = parsedUrl.searchParams.get('hub.verify_token') || req.query['hub.verify_token']
+    const challenge = parsedUrl.searchParams.get('hub.challenge') || req.query['hub.challenge']
 
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-      return res.status(200).send(challenge)
+      res.setHeader('Content-Type', 'text/plain')
+      return res.status(200).send(String(challenge))
     }
-    return res.status(403).json({ error: 'Jeton invalide' })
+
+    return res.status(403).send(`Jeton invalide. Recu: token="${token}", mode="${mode}"`)
   }
 
-  // 2. Réception du message (POST)
+  // 2. Réception des messages (POST)
   if (req.method === 'POST') {
     try {
       const supabaseUrl = process.env.VITE_SUPABASE_URL
