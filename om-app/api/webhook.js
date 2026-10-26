@@ -1,10 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL
-const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Jeton de vérification que tu choisis (utilisé par Meta pour valider ton serveur)
 const VERIFY_TOKEN = 'om_secret_token_123'
 
 export default async function handler(req, res) {
@@ -17,12 +12,20 @@ export default async function handler(req, res) {
     if (mode === 'subscribe' && token === VERIFY_TOKEN) {
       return res.status(200).send(challenge)
     }
-    return res.status(403).json({ error: 'Jeton de vérification invalide' })
+    return res.status(403).json({ error: 'Jeton invalide' })
   }
 
   // 2. Réception d'un message entrant (requête POST)
   if (req.method === 'POST') {
     try {
+      const supabaseUrl = process.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(200).json({ status: 'missing_env' })
+      }
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey)
       const body = req.body
 
       if (body.object === 'whatsapp_business_account') {
@@ -35,7 +38,6 @@ export default async function handler(req, res) {
           const senderPhone = message.from
           const messageText = message.text.body
 
-          // Recherche ou création de la conversation dans Supabase
           let { data: conversation } = await supabase
             .from('conversations')
             .select('id')
@@ -57,7 +59,6 @@ export default async function handler(req, res) {
             conversation = newConv
           }
 
-          // Enregistrement du message entrant
           if (conversation) {
             await supabase.from('messages').insert({
               conversation_id: conversation.id,
