@@ -1,9 +1,9 @@
-import { createClient } from '@supabase/supabase-js'
+const { createClient } = require('@supabase/supabase-js')
 
 const VERIFY_TOKEN = 'om_secret_token_123'
 
-export default async function handler(req, res) {
-  // 1. Validation du Webhook par Meta (requête GET)
+module.exports = async function handler(req, res) {
+  // 1. Validation du Webhook par Meta (GET)
   if (req.method === 'GET') {
     const mode = req.query['hub.mode']
     const token = req.query['hub.verify_token']
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Jeton invalide' })
   }
 
-  // 2. Réception d'un message entrant (requête POST)
+  // 2. Réception du message (POST)
   if (req.method === 'POST') {
     try {
       const supabaseUrl = process.env.VITE_SUPABASE_URL
